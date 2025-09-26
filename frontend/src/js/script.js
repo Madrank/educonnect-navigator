@@ -1,11 +1,11 @@
-// Initialisation quand la page est prête
+// === Initialisation quand la page est prête ===
 document.addEventListener("DOMContentLoaded", function () {
   feather.replace();
 
-  // Création de la carte centrée sur Paris
+  // Carte centrée sur Paris
   const map = initMap();
 
-  // --- Données brute en attendant l’API ---
+  // --- Données locales en attendant l’API ---
   const schools = [
     {
       name: "Lycée Louis-le-Grand",
@@ -30,8 +30,44 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   ];
 
-  // Affichage des écoles sur la carte
-  renderSchools(map, schools);
+  let markers = [];
+
+  // Affichage initial
+  markers = renderSchools(map, schools);
+
+  // Gestion des filtres (École / Collège / Lycée)
+  document.querySelectorAll("button[data-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const type = btn.getAttribute("data-filter");
+
+      // Supprimer les anciens marqueurs
+      markers.forEach((m) => map.removeLayer(m));
+
+      // Filtrer et réafficher
+      const filtered =
+        type === "all" ? schools : schools.filter((s) => s.type === type);
+      markers = renderSchools(map, filtered);
+    });
+  });
+
+  //Recherche par nom
+  const searchInput = document.querySelector("#searchInput");
+  const searchBtn = document.querySelector("#searchBtn");
+
+  searchBtn.addEventListener("click", () => {
+    const query = searchInput.value.toLowerCase();
+
+    markers.forEach((m) => map.removeLayer(m));
+
+    const filtered = schools.filter((s) =>
+      s.name.toLowerCase().includes(query)
+    );
+    markers = renderSchools(map, filtered);
+
+    if (filtered.length > 0) {
+      map.setView([filtered[0].lat, filtered[0].lng], 14); // Zoom sur la première école trouvée
+    }
+  });
 });
 
 // Initialiser la carte
@@ -48,8 +84,10 @@ function initMap() {
 
 // Afficher les écoles
 function renderSchools(map, schools) {
+  const markers = [];
+
   schools.forEach((school) => {
-    L.marker([school.lat, school.lng]).addTo(map).bindPopup(`
+    const marker = L.marker([school.lat, school.lng]).addTo(map).bindPopup(`
         <div class="p-2">
           <h3 class="font-bold text-lg">${school.name}</h3>
           <p class="text-gray-600">${school.type} - ${school.status}</p>
@@ -59,5 +97,9 @@ function renderSchools(map, schools) {
           </button>
         </div>
       `);
+
+    markers.push(marker);
   });
+
+  return markers;
 }
